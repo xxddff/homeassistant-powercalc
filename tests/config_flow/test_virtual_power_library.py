@@ -346,6 +346,10 @@ async def test_configured_model_populated_in_options_flow(hass: HomeAssistant) -
     assert schema_keys[schema_keys.index(CONF_MODEL)].description == {
         "suggested_value": "LCT010",
     }
+    model_select: SelectSelector = result["data_schema"].schema[CONF_MODEL]
+    model_options = model_select.config["options"]
+    assert {"value": "LCT010", "label": "LCT010 (Hue White and Color Ambiance A19 E26 (Gen 3))"} in model_options
+    assert {"value": "LCA001", "label": "LCA001 (Hue White and Color Ambiance A19 E26/E27 (Gen 5))"} in model_options
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
