@@ -316,6 +316,19 @@ async def test_device_discovered_entry_keeps_device_type_filter_in_library_optio
     manufacturer_options = manufacturer_select.config["options"]
     assert {"value": "signify", "label": "Signify"} in manufacturer_options
 
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={CONF_MANUFACTURER: "signify"},
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["step_id"] == Step.MODEL
+
+    model_select: SelectSelector = result["data_schema"].schema[CONF_MODEL]
+    model_options = model_select.config["options"]
+    assert {"value": "BSB002", "label": "BSB002 (Hue Bridge V2)"} in model_options
+    assert not any(option["value"] == "LCT010" for option in model_options)
+
 
 async def test_change_sub_profile_options_flow(hass: HomeAssistant) -> None:
     entry = create_mock_entry(
