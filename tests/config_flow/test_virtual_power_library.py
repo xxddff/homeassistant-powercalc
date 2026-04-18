@@ -144,6 +144,26 @@ async def test_manufacturer_listing_is_filtered_by_entity_domain2(
     assert {"value": "shelly", "label": "Shelly"} in manufacturer_options
 
 
+async def test_model_listing_falls_back_to_model_id_when_name_missing(hass: HomeAssistant) -> None:
+    result = await select_menu_item(hass, Step.MENU_LIBRARY)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_ENTITY_ID: "light.test"},
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_MANUFACTURER: "test"},
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["step_id"] == Step.MODEL
+
+    data_schema: vol.Schema = result["data_schema"]
+    model_select: SelectSelector = data_schema.schema["model"]
+    model_options = model_select.config["options"]
+    assert {"value": "composite_lut", "label": "composite_lut"} in model_options
+
+
 async def test_fixed_power_is_skipped_when_only_self_usage_true(hass: HomeAssistant) -> None:
     result = await select_menu_item(hass, Step.MENU_LIBRARY)
     result = await hass.config_entries.flow.async_configure(
