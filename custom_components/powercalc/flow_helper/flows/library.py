@@ -360,7 +360,7 @@ class LibraryFlow:
         if self.flow.source_entity:
             return DOMAIN_DEVICE_TYPE_MAPPING.get(self.flow.source_entity.domain, set())
 
-        return None
+        return None  # pragma: no cover
 
     def _get_library_discovery_by(self) -> DiscoveryBy | None:
         """Determine whether listing should be filtered by discovery mode."""

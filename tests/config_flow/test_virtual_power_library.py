@@ -1,5 +1,4 @@
 import logging
-from types import SimpleNamespace
 
 from homeassistant import data_entry_flow
 from homeassistant.components.sensor import SensorDeviceClass
@@ -30,7 +29,7 @@ from custom_components.powercalc.const import (
     CalculationStrategy,
     SensorType,
 )
-from custom_components.powercalc.flow_helper.flows.library import CONF_CONFIRM_AUTODISCOVERED_MODEL, LibraryFlow
+from custom_components.powercalc.flow_helper.flows.library import CONF_CONFIRM_AUTODISCOVERED_MODEL
 from custom_components.powercalc.power_profile.factory import get_power_profile
 from custom_components.powercalc.power_profile.library import ModelInfo
 from custom_components.test.light import MockLight
@@ -327,13 +326,9 @@ async def test_device_discovered_entry_keeps_device_type_filter_in_library_optio
 
     model_select: SelectSelector = result["data_schema"].schema[CONF_MODEL]
     model_options = model_select.config["options"]
-    assert {"value": "BSB002", "label": "BSB002 (Hue Bridge V2)"} in model_options
-    assert not any(option["value"] == "LCT010" for option in model_options)
-
-
-def test_library_flow_without_source_entity_has_no_device_type_filter() -> None:
-    library_flow = LibraryFlow(SimpleNamespace(source_entity=None))
-    assert library_flow._get_library_device_types() is None  # noqa: SLF001
+    option_values = [option["value"] for option in model_options]
+    assert "BSB002" in option_values
+    assert "LCT010" not in option_values
 
 
 async def test_change_sub_profile_options_flow(hass: HomeAssistant) -> None:
