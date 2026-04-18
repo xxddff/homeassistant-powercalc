@@ -29,7 +29,7 @@ async def test_manufacturer_listing(hass: HomeAssistant) -> None:
 @pytest.mark.parametrize(
     "manufacturer,expected_models",
     [
-        ("signify", [("LCT010", "Hue White and Color Ambiance A19 E26 (Gen 3)"), ("LCA007", "Hue White and Color Ambiance A19 E26/E27")]),
+        ("signify", [("LCT010", "Hue White and Color Ambiance A19 E26 (Gen 3)"), ("LCA007", "Hue White and Color Ambiance A19 E26 1100lm")]),
         ("Signify Netherlands B.V.", [("LCT010", "Hue White and Color Ambiance A19 E26 (Gen 3)")]),
     ],
 )
