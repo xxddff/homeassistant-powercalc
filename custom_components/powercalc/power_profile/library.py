@@ -22,7 +22,7 @@ from .loader.composite import CompositeLoader
 from .loader.local import LocalLoader
 from .loader.protocol import Loader
 from .loader.remote import RemoteLoader
-from .power_profile import DeviceType, PowerProfile
+from .power_profile import DeviceType, DiscoveryBy, PowerProfile
 
 LEGACY_CUSTOM_DATA_DIRECTORY = "powercalc-custom-models"
 CUSTOM_DATA_DIRECTORY = "powercalc/profiles"
@@ -33,7 +33,7 @@ class ProfileLibrary:
         self._hass = hass
         self._loader = loader
         self._profiles: dict[str, list[PowerProfile]] = {}
-        self._manufacturer_models: dict[str, set[str]] = {}
+        self._manufacturer_models: dict[str, set[tuple[str, str]]] = {}
         self._manufacturer_device_types: dict[str, list] = {}
 
     async def initialize(self) -> None:
@@ -70,29 +70,39 @@ class ProfileLibrary:
 
         return CompositeLoader(loaders)
 
-    async def get_manufacturer_listing(self, device_types: set[DeviceType] | None = None) -> list[tuple[str, str]]:
+    async def get_manufacturer_listing(
+        self,
+        device_types: set[DeviceType] | None = None,
+        discovery_by: DiscoveryBy | None = None,
+    ) -> list[tuple[str, str]]:
         """Get listing of available manufacturers."""
-        manufacturers = await self._loader.get_manufacturer_listing(device_types)
+        manufacturers = await self._loader.get_manufacturer_listing(device_types, discovery_by)
         return sorted(manufacturers)
 
-    async def get_model_listing(self, manufacturer: str, device_types: set[DeviceType] | None = None) -> list[str]:
-        """Get listing of available models for a given manufacturer."""
+    async def get_model_listing(
+        self,
+        manufacturer: str,
+        device_types: set[DeviceType] | None = None,
+        discovery_by: DiscoveryBy | None = None,
+    ) -> list[tuple[str, str]]:
+        """Get listing of available models and display names for a given manufacturer."""
 
         resolved_manufacturers = await self._loader.find_manufacturers(manufacturer)
         if not resolved_manufacturers:
             return []
-        all_models: list[str] = []
+
+        all_models: list[tuple[str, str]] = []
         for manufacturer in resolved_manufacturers:
-            cache_key = f"{manufacturer}/{device_types}"
+            cache_key = f"{manufacturer}/{device_types}/{discovery_by}"
             cached_models = self._manufacturer_models.get(cache_key)
             if cached_models:
-                all_models.extend(cached_models)
+                all_models.extend(sorted(cached_models))
                 continue
-            models = await self._loader.get_model_listing(manufacturer, device_types)
+            models = await self._loader.get_model_listing(manufacturer, device_types, discovery_by)
             self._manufacturer_models[cache_key] = models
-            all_models.extend(models)
+            all_models.extend(sorted(models))
 
-        return sorted(all_models)
+        return sorted(all_models, key=lambda model: model[0])
 
     async def get_profile(
         self,
