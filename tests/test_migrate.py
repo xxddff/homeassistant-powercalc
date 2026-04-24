@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import AsyncMock, Mock, patch
 
 from homeassistant.const import CONF_ENABLED, CONF_ENTITY_ID, CONF_NAME
 from homeassistant.core import HomeAssistant
@@ -11,6 +12,7 @@ from custom_components.powercalc import (
     CONF_GROUP_UPDATE_INTERVAL_DEPRECATED,
     DOMAIN,
     DeviceType,
+    async_fix_legacy_profile_config_entry,
     async_migrate_entry,
 )
 from custom_components.powercalc.config_flow import PowercalcConfigFlow
@@ -23,7 +25,9 @@ from custom_components.powercalc.const import (
     CONF_EXCLUDE_SELF_USAGE,
     CONF_FIXED,
     CONF_GROUP_ENERGY_UPDATE_INTERVAL,
+    CONF_MANUFACTURER,
     CONF_MODE,
+    CONF_MODEL,
     CONF_PLAYBOOK,
     CONF_PLAYBOOKS,
     CONF_POWER,
@@ -191,3 +195,72 @@ async def test_migrate_config_entry_states_power(hass: HomeAssistant) -> None:
         {CONF_STATE: "paused", CONF_POWER: 5},
         {CONF_STATE: "idle", CONF_POWER: 2},
     ]
+
+
+async def test_fix_legacy_library_model_reference(hass: HomeAssistant) -> None:
+    """Test always-on normalization of legacy library model ids."""
+    mock_entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_SENSOR_TYPE: SensorType.VIRTUAL_POWER,
+            CONF_MANUFACTURER: "eglo",
+            CONF_MODEL: "33955",
+        },
+        version=7,
+    )
+    mock_entry.add_to_hass(hass)
+
+    library = Mock()
+    library.find_model_migration = AsyncMock(return_value=("eglo", "900053"))
+
+    with patch("custom_components.powercalc.migrate.ProfileLibrary.factory", AsyncMock(return_value=library)):
+        await async_fix_legacy_profile_config_entry(hass, mock_entry)
+
+    assert mock_entry.version == PowercalcConfigFlow.VERSION
+    assert mock_entry.data[CONF_MODEL] == "900053"
+
+
+async def test_fix_legacy_library_model_reference_keeps_sub_profile_suffix(hass: HomeAssistant) -> None:
+    """Test always-on normalization preserves sub-profile selection."""
+    mock_entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_SENSOR_TYPE: SensorType.VIRTUAL_POWER,
+            CONF_MANUFACTURER: "eglo",
+            CONF_MODEL: "33955/default",
+        },
+        version=7,
+    )
+    mock_entry.add_to_hass(hass)
+
+    library = Mock()
+    library.find_model_migration = AsyncMock(return_value=("eglo", "900053"))
+
+    with patch("custom_components.powercalc.migrate.ProfileLibrary.factory", AsyncMock(return_value=library)):
+        await async_fix_legacy_profile_config_entry(hass, mock_entry)
+
+    assert mock_entry.version == PowercalcConfigFlow.VERSION
+    assert mock_entry.data[CONF_MODEL] == "900053/default"
+
+
+async def test_fix_legacy_library_model_reference_keeps_unmapped_model(hass: HomeAssistant) -> None:
+    """Test always-on normalization does not touch unrelated models."""
+    mock_entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_SENSOR_TYPE: SensorType.VIRTUAL_POWER,
+            CONF_MANUFACTURER: "eglo",
+            CONF_MODEL: "Totari-Z 380",
+        },
+        version=7,
+    )
+    mock_entry.add_to_hass(hass)
+
+    library = Mock()
+    library.find_model_migration = AsyncMock(return_value=None)
+
+    with patch("custom_components.powercalc.migrate.ProfileLibrary.factory", AsyncMock(return_value=library)):
+        await async_fix_legacy_profile_config_entry(hass, mock_entry)
+
+    assert mock_entry.version == PowercalcConfigFlow.VERSION
+    assert mock_entry.data[CONF_MODEL] == "Totari-Z 380"
