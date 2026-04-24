@@ -41,6 +41,7 @@ from custom_components.powercalc.const import (
     CalculationStrategy,
     SensorType,
 )
+from custom_components.powercalc.power_profile.library import ModelInfo
 from tests.common import run_powercalc_setup
 
 
@@ -211,7 +212,7 @@ async def test_fix_legacy_library_model_reference(hass: HomeAssistant) -> None:
     mock_entry.add_to_hass(hass)
 
     library = Mock()
-    library.find_model_migration = AsyncMock(return_value=("eglo", "900053"))
+    library.find_model_migration = AsyncMock(return_value=ModelInfo("eglo", "900053"))
 
     with patch("custom_components.powercalc.migrate.ProfileLibrary.factory", AsyncMock(return_value=library)):
         await async_fix_legacy_profile_config_entry(hass, mock_entry)
@@ -234,7 +235,7 @@ async def test_fix_legacy_library_model_reference_keeps_sub_profile_suffix(hass:
     mock_entry.add_to_hass(hass)
 
     library = Mock()
-    library.find_model_migration = AsyncMock(return_value=("eglo", "900053"))
+    library.find_model_migration = AsyncMock(return_value=ModelInfo("eglo", "900053"))
 
     with patch("custom_components.powercalc.migrate.ProfileLibrary.factory", AsyncMock(return_value=library)):
         await async_fix_legacy_profile_config_entry(hass, mock_entry)
